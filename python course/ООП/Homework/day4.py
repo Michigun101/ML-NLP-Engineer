@@ -30,7 +30,9 @@ class Transaction:
 
     def __init__(self, transaction_type, amount, currency,
                  sender_id=None, receiver_id=None,
-                 transaction_id=None, priority=None,is_external=False):
+                 transaction_id=None, priority=None
+                #  ,is_external=False
+                 ):
         
         if transaction_type not in self.ALLOWED_TYPES:
             raise InvalidOperationError( 
@@ -87,9 +89,9 @@ class Transaction:
             raise InvalidOperationError(f'Неизвестный приоритет: {priority}. Разрешены: {self.PRIORITY_HIGH}, {self.PRIORITY_NORMAL}')
         self.priority = priority
 
-        if not isinstance(is_external, bool):
-            raise InvalidOperationError(f'is_external должен быть bool, получено {type(is_external).__name__}')
-        self.is_external = is_external
+        # if not isinstance(is_external, bool):
+        #     raise InvalidOperationError(f'is_external должен быть bool, получено {type(is_external).__name__}')
+        # self.is_external = is_external
 
         self.fee = 0.0                    
         self.status = self.STATUS_PENDING
@@ -243,13 +245,7 @@ class TransactionProcessor:
         self.analyzer = analyzer       
         self.audit = audit                  
         self.error_log = []            
-        self.rates = {
-            'RUB': 1.0,      # через рубль
-            'USD': 90.0,     
-            'EUR': 100.0,    
-            'KZT': 0.2,      
-            'CNY': 12.5,     
-        }
+        self.rates = bank._rates
 
     def process_all(self, queue):
         '''Обработать все транзакции из очереди.'''
@@ -323,6 +319,12 @@ class TransactionProcessor:
             self._execute_with_retry(transaction)
             transaction.mark_completed()
 
+            if transaction.status == 'completed':
+                # регистрируем успешную операцию в RiskAnalyzer
+                client_id = self._find_client_id(transaction)
+                if client_id is not None and self.analyzer is not None:
+                    self.analyzer.register_transaction(client_id, transaction)
+
             if self.audit is not None:
                 self.audit.log(
                     "info", "transaction_completed",
@@ -358,15 +360,36 @@ class TransactionProcessor:
         if transaction.transaction_type != Transaction.TYPE_TRANSFER:
             return 0.0
 
-        if not transaction.is_external:
-            return 0.0   # внутренний — без комиссии
-
+        # Внешний - счета принадлежат разным клиентам
         sender = self.bank._get_account(transaction.sender_id)
+        receiver = self.bank._get_account(transaction.receiver_id)
+
+        sender_client = self._find_client_id_by_account(sender.account_id)
+        receiver_client = self._find_client_id_by_account(receiver.account_id)
+
+        # Если получатель — внешний счёт, считаем перевод внешним
+        if receiver_client is None:
+            is_external = True
+        else:
+            is_external = (sender_client != receiver_client)
+
+        if not is_external:
+            return 0.0   # внутри одного клиента — без комиссии
+
         rate = self.DEFAULT_FEE_RATE
         if isinstance(sender, PremiumAccount):
             rate = self.PREMIUM_FEE_RATE
 
         return transaction.amount * rate
+
+    def _find_client_id_by_account(self, account_id):
+        """Найти client_id по конкретному account_id"""
+        if account_id is None:
+            return None
+        for client in self.bank._clients.values():
+            if account_id in client.account_ids:
+                return client.client_id
+        return None
 
     def _convert(self, amount, from_currency, to_currency):
         '''Конвертировать сумму из одной валюты в другую.'''

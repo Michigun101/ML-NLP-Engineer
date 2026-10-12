@@ -137,7 +137,16 @@ class InvestmentAccount(BankAccount):
         )
 
     def withdraw(self, amount):
-        '''Снятие со счёта'''
+        '''Снятие со счёта с учётом занятых в портфеле средств.'''
+        invested = sum(self._portfolio.values())
+        free = self._balance - invested
+
+        if amount > free:
+            raise InsufficientFundsError(
+                f'Недостаточно свободных средств: баланс {self._balance}, '
+                f'в портфеле {invested}, свободно {free}, запрошено {amount}'
+            )
+
         super().withdraw(amount)
 
     def project_yearly_growth(self, growth_rates):
@@ -260,3 +269,38 @@ if __name__ == '__main__':
 
     acc = InvestmentAccount("Тест", balance=10000, portfolio={"stocks": 5000})
     print(f" Портфель < баланс: {acc._portfolio}")    
+
+    print()
+    print('5. ИНВАРИАНТ ПОРТФЕЛЯ ПРИ СНЯТИИ')
+
+    inv = InvestmentAccount("Тест", balance=10000,
+                            portfolio={"stocks": 9000})
+    print(f'Баланс: {inv._balance}, портфель: {sum(inv._portfolio.values())}, '
+          f'свободно: {inv._balance - sum(inv._portfolio.values())}')
+
+    # Снятие в пределах свободных средств 
+    inv.withdraw(1000)
+    print(f'Снятие 1000: баланс={inv._balance}, портфель={sum(inv._portfolio.values())}')
+    assert inv._balance >= sum(inv._portfolio.values()), 'Инвариант нарушен!'
+
+    # Снятие сверх свободных средств
+    try:
+        inv.withdraw(1)
+        print(' Снятие сверх свободных прошло — дефект не устранён')
+    except InsufficientFundsError as e:
+        print(f' Снятие сверх свободных отклонено: {e}')
+
+        # Граничный случай: снять почти всё свободное, оставив 1
+    free = inv._balance - sum(inv._portfolio.values())
+    if free > 0:
+        inv.withdraw(free - 1)
+        remaining = inv._balance - sum(inv._portfolio.values())
+        print(f'Снятие {free - 1} из {free} свободных: '
+              f'баланс={inv._balance}, портфель={sum(inv._portfolio.values())}, '
+              f'осталось свободно={remaining}')
+        assert remaining == 1, f'Ожидалось 1 свободных, получено {remaining}'
+    else:
+        print(f'Свободных средств нет ({free}) — снимать нечего, пропускаем')
+
+    print(' Инвариант портфеля соблюдается при снятии')
+

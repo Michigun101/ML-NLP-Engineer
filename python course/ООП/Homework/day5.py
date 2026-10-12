@@ -156,7 +156,7 @@ class RiskAnalyzer:
 
         recent = [trans for ts, trans in history if ts >= window_start]
         if len(recent) >= self.FREQUENT_COUNT:
-            return (2, f'Частые операции: {len(recent)} за {self.FREQUENT_WINDOW} мин')
+            return (3, f'Частые операции: {len(recent)} за {self.FREQUENT_WINDOW} мин')
         return (0, None)
 
     def _find_client_by_account(self, account_id):

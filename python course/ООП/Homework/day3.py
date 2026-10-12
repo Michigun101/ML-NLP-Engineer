@@ -101,6 +101,16 @@ class Client:
 
 class Bank:
 
+    BASE_CURRENCY = 'RUB'
+
+    DEFAULT_RATES = {
+        'RUB': 1.0,
+        'USD': 90.0,
+        'EUR': 100.0,
+        'KZT': 0.2,
+        'CNY': 12.5,
+    }
+
     ACCOUNT_TYPES = {
     'basic': BankAccount,
     'savings': SavingsAccount,
@@ -109,7 +119,7 @@ class Bank:
     }
 
 
-    def __init__(self,name):
+    def __init__(self,name, rates=None):
         if not isinstance(name, str) or not name.strip():
             raise InvalidOperationError('Название банка должно быть непустой строкой')
         self.name = name.strip()
@@ -118,6 +128,15 @@ class Bank:
         self._accounts = {}     
         self._max_failed_attempts = 3
         self._allow_operations_24h = False
+
+        self._rates = dict(self.DEFAULT_RATES)
+        if rates is not None:
+            for currency, rate in rates.items():
+                if not isinstance(currency, str) or not currency.strip():
+                    raise InvalidOperationError('Код валюты должен быть непустой строкой')
+                if not isinstance(rate, (int, float)) or isinstance(rate, bool) or rate <= 0:
+                    raise InvalidOperationError(f'Курс для {currency} должен быть положительным числом')
+                self._rates[currency.strip().upper()] = float(rate)
 
     def _get_client(self, client_id):
         if client_id not in self._clients:
@@ -128,6 +147,12 @@ class Bank:
         if account_id not in self._accounts:
             raise InvalidOperationError(f'Счёт с ID {account_id} не найден')
         return self._accounts[account_id]
+
+    def _to_base(self, amount, currency):
+        '''Перевести сумму из валюты счёта в базовую валюту банка.'''
+        if currency not in self._rates:
+            raise InvalidOperationError(f'Нет курса для валюты {currency}')
+        return amount * self._rates[currency]
 
     def add_client(self, client):
         '''Добавить клиента в банк.'''
@@ -249,21 +274,26 @@ class Bank:
         return results
 
     def get_total_balance(self, client_id=None):
-        '''Общий баланс.'''
+        '''Общий баланс в базовой валюте (RUB)'''
         if client_id is not None:
             client = self._get_client(client_id)
-            accounts = [self._accounts[aid] for aid in client.account_ids if aid in self._accounts]
-
+            accounts = [self._accounts[aid] for aid in client.account_ids
+                        if aid in self._accounts]
         else:
             accounts = list(self._accounts.values())
 
-        return sum(acc._balance for acc in accounts)
+        return sum(self._to_base(acc._balance, acc._currency) for acc in accounts)
 
     def get_clients_ranking(self):
-        '''Рейтинг клиентов по общей сумме балансов.'''
+        '''Рейтинг клиентов по общей сумме балансов в базовой валюте.'''
         ranking = []
         for client in self._clients.values():
-            total = sum(self._accounts[aid]._balance for aid in client.account_ids if aid in self._accounts)
+            total = sum(
+                self._to_base(self._accounts[aid]._balance,
+                              self._accounts[aid]._currency)
+                for aid in client.account_ids
+                if aid in self._accounts
+            )
             ranking.append((client, total))
 
         ranking.sort(key=lambda pair: pair[1], reverse=True)
@@ -365,3 +395,19 @@ if __name__ == '__main__':
         bank.close_account(acc5.account_id)
     except InvalidOperationError as e:
         print(f'Дубль закрытия: {e}')
+
+    # Проверка мультивалютной агрегации
+    bank2 = Bank('MultiCurrency')
+    c = Client('Мульти Клиент', 30, 'm@m.ru', '+79990000000', 'pass')
+    cid = bank2.add_client(c)
+
+    a_rub = bank2.open_account(cid, 'basic', balance=1000)              # RUB
+    a_usd = bank2.open_account(cid, 'basic', balance=100, currency='USD')  # USD
+
+    total = bank2.get_total_balance(cid)
+    print(f'Общий баланс клиента: {total} RUB')   # 10000.0
+    assert total == 1000 + 100 * 90, f'Ожидалось 10000, получено {total}'
+
+    assert total != 1000 + 100, 'USD сложился с RUB как 1:1 — дефект не устранён'
+
+    print(' Мультивалютная агрегация работает')

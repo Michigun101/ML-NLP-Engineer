@@ -156,16 +156,6 @@ def _make_suspicious(acc_list):
         receiver_id=receiver.account_id,
     )
 
-def _find_client_id(bank, transaction):
-    '''Найти client_id по счёту отправителя/получателя.'''
-    account_id = transaction.sender_id or transaction.receiver_id
-    if account_id is None:
-        return None
-    for client in bank._clients.values():
-        if account_id in client.account_ids:
-            return client.client_id
-    return None
-
 def process_transactions(bank, transactions, audit, analyzer, processor):
     queue = TransactionQueue()
     for t in transactions:
@@ -181,9 +171,6 @@ def process_transactions(bank, transactions, audit, analyzer, processor):
         processor.execute(t)   
 
         if t.status == 'completed':
-            cid = _find_client_id(bank, t)
-            if cid is not None:
-                analyzer.register_transaction(cid, t)
             results['completed'].append(t)
         elif t.status == 'failed':
             reason = t.failure_reason or ''
@@ -333,9 +320,78 @@ async def test_risk_bypass():
     assert acc1._balance == 1_000_000, f"Баланс должен быть нетронут: {acc1._balance}"
     print(f" Баланс acc1 не изменился: {acc1._balance}")
 
+async def test_cumulative_risk():
+    print()
+    print("ТЕСТ: накопительный риск через прямой execute")
+
+    Bank._allow_operations_24h = True
+    bank = Bank("CumulativeBank")
+    c = Client("Тестов Тест", 30, "t@t.ru", "+79990000000", "pass")
+    cid = bank.add_client(c)
+    acc1 = bank.open_account(cid, "basic", balance=10_000_000)
+    acc2 = bank.open_account(cid, "basic", balance=0)
+
+    audit = AuditLog()
+    analyzer = RiskAnalyzer(bank, audit)
+    processor = TransactionProcessor(bank, analyzer=analyzer, audit=audit)
+
+    blocked_at = None
+    for i in range(20):
+        t = Transaction("transfer", 1000, "RUB",
+                        sender_id=acc1.account_id,
+                        receiver_id=acc2.account_id)
+        processor.execute(t)
+        if t.status == "failed" and "high risk" in (t.failure_reason or ""):
+            blocked_at = i
+            break
+
+    print(f"Заблокировано на операции №{blocked_at}")
+    assert blocked_at is not None, "Накопительный риск не сработал — история не ведётся!"
+    print(" Накопительный риск сработал")   
+
+async def test_external_fee_by_owner():
+    print()
+    print("ТЕСТ: комиссия определяется по владельцам, а не по флагу")
+
+    Bank._allow_operations_24h = True
+    bank = Bank("FeeTestBank")
+
+    c1 = Client("Клиент Один", 30, "a@a.ru", "+79990000001", "pass1")
+    c2 = Client("Клиент Два",  30, "b@b.ru", "+79990000002", "pass2")
+    id1 = bank.add_client(c1)
+    id2 = bank.add_client(c2)
+
+    a1 = bank.open_account(id1, "basic", balance=100_000)   # клиент 1
+    a2 = bank.open_account(id1, "basic", balance=0)         # клиент 1 (тот же)
+    a3 = bank.open_account(id2, "basic", balance=0)         # клиент 2 (другой)
+
+    audit = AuditLog()
+    analyzer = RiskAnalyzer(bank, audit)
+    processor = TransactionProcessor(bank, analyzer=analyzer, audit=audit)
+
+    #  Внутренний: один клиент, без флага is_external
+    t_internal = Transaction("transfer", 1000, "RUB",
+                             sender_id=a1.account_id,
+                             receiver_id=a2.account_id)
+    fee_internal = processor._calculate_fee(t_internal)
+    print(f"Внутренний (один клиент, is_external=False): fee={fee_internal}")
+    assert fee_internal == 0.0, "Внутренний перевод не должен иметь комиссию"
+
+    #  Внешний: разные клиенты, без флага is_external
+    t_external = Transaction("transfer", 1000, "RUB",
+                             sender_id=a1.account_id,
+                             receiver_id=a3.account_id)
+    fee_external = processor._calculate_fee(t_external)
+    print(f"Внешний (разные клиенты, is_external=False): fee={fee_external}")
+    assert fee_external > 0.0, "Внешний перевод должен иметь комиссию"
+
+
+
 async def run_all():
     main()
     await test_risk_bypass()
+    await test_cumulative_risk()
+    await test_external_fee_by_owner()
 
 if __name__ == '__main__':
     import asyncio
