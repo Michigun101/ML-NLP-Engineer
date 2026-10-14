@@ -2,95 +2,95 @@
   "bank_name": "Демо Банк",
   "clients_count": 6,
   "accounts_count": 11,
-  "total_balance_rub": 2329400.0,
+  "total_balance_rub": 2328745.34,
   "clients": [
     {
-      "client_id": "6e98e477",
+      "client_id": "7232ece8",
       "full_name": "Кузнецов Олег Иванович",
       "age": 40,
       "status": "active",
       "accounts_count": 2,
-      "total_rub": 1207211.0
+      "total_rub": 1210955.48
     },
     {
-      "client_id": "bcab6cf4",
+      "client_id": "6e3c37d5",
       "full_name": "Сидоров Сидор Сидорович",
       "age": 35,
       "status": "active",
       "accounts_count": 2,
-      "total_rub": 603638.0
+      "total_rub": 603603.45
     },
     {
-      "client_id": "9a1fcaa8",
+      "client_id": "006fe608",
       "full_name": "Смирнова Анна Сергеевна",
       "age": 28,
       "status": "active",
       "accounts_count": 2,
-      "total_rub": 272750.0
+      "total_rub": 277105.84
     },
     {
-      "client_id": "38c32932",
+      "client_id": "afd202f3",
       "full_name": "Иванов Иван Иванович",
       "age": 30,
       "status": "active",
       "accounts_count": 3,
-      "total_rub": 194652.0
+      "total_rub": 189624.91
     },
     {
-      "client_id": "5d8ef38f",
+      "client_id": "c634ac86",
       "full_name": "Петров Пётр Петрович",
       "age": 25,
       "status": "active",
       "accounts_count": 1,
-      "total_rub": 43864.0
+      "total_rub": 43802.64
     },
     {
-      "client_id": "0f605e52",
+      "client_id": "5f1fc44c",
       "full_name": "Попова Мария Алексеевна",
       "age": 22,
       "status": "active",
       "accounts_count": 1,
-      "total_rub": 7285.0
+      "total_rub": 3653.02
     }
   ],
   "top_3": [
     {
-      "client_id": "6e98e477",
+      "client_id": "7232ece8",
       "full_name": "Кузнецов Олег Иванович",
       "age": 40,
       "status": "active",
       "accounts_count": 2,
-      "total_rub": 1207211.0
+      "total_rub": 1210955.48
     },
     {
-      "client_id": "bcab6cf4",
+      "client_id": "6e3c37d5",
       "full_name": "Сидоров Сидор Сидорович",
       "age": 35,
       "status": "active",
       "accounts_count": 2,
-      "total_rub": 603638.0
+      "total_rub": 603603.45
     },
     {
-      "client_id": "9a1fcaa8",
+      "client_id": "006fe608",
       "full_name": "Смирнова Анна Сергеевна",
       "age": 28,
       "status": "active",
       "accounts_count": 2,
-      "total_rub": 272750.0
+      "total_rub": 277105.84
     }
   ],
   "audit_summary": {
-    "total_events": 61,
+    "total_events": 58,
     "by_level": {
-      "info": 19,
-      "warning": 21,
-      "error": 21
+      "info": 17,
+      "warning": 18,
+      "error": 23
     },
     "by_type": {
-      "transaction_blocked": 19,
-      "risk_detected": 21,
-      "transaction_completed": 19,
-      "transaction_failed": 2
+      "transaction_blocked": 22,
+      "risk_detected": 18,
+      "transaction_completed": 17,
+      "transaction_failed": 1
     }
   }
 }

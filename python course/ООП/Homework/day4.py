@@ -51,7 +51,7 @@ class Transaction:
             raise InvalidOperationError(f'Валюта должна быть строкой, получено {type(currency).__name__}')
         currency = currency.strip().upper()
         if currency not in self.ALLOWED_CURRENCIES:
-            raise InvalidOperationError(f'Недопустимая валюта: {currency}. Разрешены: {', '.join(self.ALLOWED_CURRENCIES)}')
+            raise InvalidOperationError(f"Недопустимая валюта: {currency}. Разрешены: {', '.join(self.ALLOWED_CURRENCIES)}")
         self.currency = currency
 
         if sender_id is not None and (not isinstance(sender_id, str) or not sender_id.strip()):
@@ -379,7 +379,7 @@ class TransactionProcessor:
         rate = self.DEFAULT_FEE_RATE
         if isinstance(sender, PremiumAccount):
             rate = self.PREMIUM_FEE_RATE
-
+        # print(f'fee для {transaction.transaction_id}: sender={type(sender).__name__}, rate={rate}, fee={transaction.amount * rate}')
         return transaction.amount * rate
 
     def _find_client_id_by_account(self, account_id):
@@ -544,16 +544,14 @@ if __name__ == '__main__':
 
     # 1. Обычный перевод basic - basic
     t1 = Transaction('transfer', 500, 'RUB',
-                     sender_id=acc1.account_id,
-                     receiver_id=acc4.account_id,
-                     is_external=True )
+                 sender_id=acc1.account_id,
+                 receiver_id=acc4.account_id)
     transactions.append(t1)
 
     # 2. Перевод от премиум аккаунта
     t2 = Transaction('transfer', 1000, 'RUB',
-                     sender_id=acc3.account_id,
-                     receiver_id=acc1.account_id,
-                     is_external=True)
+                 sender_id=acc3.account_id,
+                 receiver_id=acc1.account_id)
     transactions.append(t2)
 
     # 3. Пополнение счёта
@@ -568,9 +566,8 @@ if __name__ == '__main__':
 
     # 5. Перевод в USD 
     t5 = Transaction('transfer', 1000, 'RUB',
-                     sender_id=acc1.account_id,
-                     receiver_id=acc_usd.account_id,
-                     is_external=True)
+                 sender_id=acc1.account_id,
+                 receiver_id=acc_usd.account_id)
     transactions.append(t5)
 
     # 6. Пополнение в USD
@@ -580,9 +577,8 @@ if __name__ == '__main__':
 
     # 7. Недостаточно средств 
     t7 = Transaction('transfer', 999999, 'RUB',
-                     sender_id=acc4.account_id,
-                     receiver_id=acc1.account_id,
-                     is_external=True)
+                 sender_id=acc4.account_id,
+                 receiver_id=acc1.account_id)
     transactions.append(t7)
 
     # 8. Перевод с высоким приоритетом
@@ -658,7 +654,7 @@ if __name__ == '__main__':
 
     print(f'\n7. Лог ошибок ({len(processor.error_log)}) ')
     for err in processor.error_log:
-        print(f'  {err['transaction_id']} [{err['type']}]: {err['error']}')
+        print(f"  {err['transaction_id']} [{err['type']}]: {err['error']}")
 
 
     print(f'\n8. Ждём отложенную t10 ')
@@ -714,7 +710,7 @@ if __name__ == '__main__':
         'transfer', 1000, 'RUB',
         sender_id=acc1.account_id,
         receiver_id=acc3.account_id,
-        is_external=True,   
+        # is_external=True,   
     )
     fee_external = processor._calculate_fee(t_external)
     print(f'   Внешний (acc1 -> acc3, разные клиенты): fee={fee_external}')
@@ -723,7 +719,7 @@ if __name__ == '__main__':
         'transfer', 1000, 'RUB',
         sender_id=acc3.account_id,
         receiver_id=acc1.account_id,
-        is_external=True,   
+        # is_external=True,   
     )
     fee_premium = processor._calculate_fee(t_premium)
     print(f'   Внешний от премиум (acc3 -> acc1): fee={fee_premium}')

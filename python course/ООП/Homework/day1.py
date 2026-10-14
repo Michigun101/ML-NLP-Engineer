@@ -69,7 +69,7 @@ class BankAccount(AbstractAccount):
         if currency not in self.ALLOWED_CURRENCIES:
             raise InvalidOperationError(
                 f'Недопустимая валюта: {currency}. '
-                f'Разрешены: {', '.join(self.ALLOWED_CURRENCIES)}'
+                f"Разрешены: {', '.join(self.ALLOWED_CURRENCIES)}"
             )
         self._currency = currency
 
@@ -81,10 +81,10 @@ class BankAccount(AbstractAccount):
     def __str__(self):
         short_id = str(self.account_id)[-4:] 
         return (
-            f'{self.__class__.__name__}(owner={self.owner}, '
-            f'id=...{short_id}, '
-            f'status={self._status}, '
-            f'balance={self._balance} {self._currency}'
+            f"{self.__class__.__name__}(owner={self.owner}, "
+            f"id=...{short_id}, "
+            f"status={self._status}, "
+            f"balance={self._balance} {self._currency}"
         )
 
     def _check_active(self):

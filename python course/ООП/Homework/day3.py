@@ -184,7 +184,7 @@ class Bank:
             raise InvalidOperationError(f'Клиент {client.full_name} заблокирован — операция невозможна')
 
         if account_type not in self.ACCOUNT_TYPES:
-            raise InvalidOperationError(f'Неизвестный тип счёта: {account_type}. Доступны: {', '.join(self.ACCOUNT_TYPES.keys())}')
+            raise InvalidOperationError(f"Неизвестный тип счёта: {account_type}. Доступны: {', '.join(self.ACCOUNT_TYPES.keys())}")
 
         AccountClass = self.ACCOUNT_TYPES[account_type]
         account = AccountClass(owner=client.full_name, **kwargs)
@@ -335,7 +335,7 @@ if __name__ == '__main__':
     acc3.withdraw(11000)  
     print(f'acc3 после withdraw(11000) : {acc3._balance}')
 
-    print(f'acc4 прогноз роста : {acc4.project_yearly_growth({'stocks': 0.10, 'bonds': 0.04, 'etf': 0.07})}')
+    print(f"acc4 прогноз роста : {acc4.project_yearly_growth({'stocks': 0.10, 'bonds': 0.04, 'etf': 0.07})}")
 
     assert bank.authenticate_client(id1, 'pass123') is True
     print('Успешный вход')
@@ -374,9 +374,9 @@ if __name__ == '__main__':
     bank.unfreeze_account(acc2.account_id)
     print(f'acc2 разморожен: {acc2._status}')
 
-    print(f'По иванов: {len(bank.search_accounts(owner='иванов'))} счетов')
-    print(f'По status="active": {len(bank.search_accounts(status='active'))} счетов')
-    print(f'По петров + active: {len(bank.search_accounts(owner='петров', status='active'))} счетов')
+    print(f"По иванов: {len(bank.search_accounts(owner='иванов'))} счетов")
+    print(f"По status='active': {len(bank.search_accounts(status='active'))} счетов")
+    print(f"По петров + active: {len(bank.search_accounts(owner='петров', status='active'))} счетов")
 
     print(f'Общий баланс банка: {bank.get_total_balance()}')
     print(f'Баланс клиента 1:   {bank.get_total_balance(id1)}')
